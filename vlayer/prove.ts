@@ -14,7 +14,7 @@ import {
 
 const issueId = 14;
 const URL_TO_PROVE = "https://api.github.com/repos/b3ww/vGrant/issues/" + issueId;
-const deployed = true;
+const deployed = false;
 
 const config = getConfig();
 const { chain, ethClient, account, proverUrl, confirmations, notaryUrl } =
@@ -35,6 +35,10 @@ if (!pk2Raw) {
 const pk2 = pk2Raw.startsWith("0x") ? pk2Raw as `0x${string}` : `0x${pk2Raw}` as `0x${string}`;
 const claimerAccount = privateKeyToAccount(pk2);
 console.log("✅ Claimer account loaded:", claimerAccount.address);
+
+let prover = process.env.VITE_PROVER_ADDRESS;
+let verifier = process.env.VITE_VERIFIER_ADDRESS;
+let tokenAddress = process.env.VITE_TOKEN_ADDRESS;
 
 const vlayer = createVlayerClient({
   url: proverUrl,
@@ -60,7 +64,7 @@ const txHash1 = await ethClient.deployContract({
   chain,
 });
 
-const prover = await ethClient.waitForTransactionReceipt({
+prover = await ethClient.waitForTransactionReceipt({
   hash: txHash1,
   confirmations,
   retryCount: 60,
@@ -77,7 +81,7 @@ const txhash3 = await ethClient.deployContract({
   chain,
 });
 
-const tokenAddress = await ethClient.waitForTransactionReceipt({
+tokenAddress = await ethClient.waitForTransactionReceipt({
   hash: txhash3,
   confirmations,
   retryCount: 60,
@@ -94,7 +98,7 @@ const txHash2 = await ethClient.deployContract({
   chain,
 });
 
-const verifier = await ethClient.waitForTransactionReceipt({
+verifier = await ethClient.waitForTransactionReceipt({
   hash: txHash2,
   confirmations,
   retryCount: 60,
@@ -110,15 +114,6 @@ await writeEnvVariables(".env", {
 
 console.log("✅ Contracts deployed", { prover, verifier });
 
-} else {
-
-const prover = process.env.VITE_PROVER_ADDRESS;
-const verifier = process.env.VITE_VERIFIER_ADDRESS;
-const tokenAddress = process.env.VITE_TOKEN_ADDRESS;
-if (!prover || !verifier) {
-  throw new Error(
-    "Prover or Verifier address not found in environment variables. Make sure to deploy the contracts first.",
-  );
 }
 
 // verify user

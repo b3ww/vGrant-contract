@@ -28,10 +28,10 @@ contract Vgrant is Verifier {
     mapping(string issue => bool) public bountyExists;
 
     event BountyAdded(string repo, uint256 issueId, uint256 bounty, uint256 deadline);
-    event BountyApproved(string issue, uint256 bounty, uint256 deadline);
+    event BountyApproved(string issue, uint256 bounty, uint256 deadline, address author);
     event BountyClosed(string issue);
-    event BountyClaimed(string issue, address claimer);
-    event BountyIncreasedDeadline(string issue, uint256 newDeadline);
+    event BountyClaimed(string issue, address claimer, uint256 bounty, address dev, int256 githubId);
+    event BountyIncreasedDeadline(string issue, uint256 newDeadline, uint256 oldDeadline);
     event AccountVerified(address account, int256 id);
 
     constructor(address _prover, address _bountyToken) {
@@ -95,8 +95,9 @@ contract Vgrant is Verifier {
         require(!bounty.claimed, "Bounty already claimed");
         require(_newDeadline > bounty.deadline, "New deadline must be greater than current");
 
+        uint256 oldDeadline = bounty.deadline;
         bounty.deadline = _newDeadline;
-        emit BountyIncreasedDeadline(_issue, _newDeadline);
+        emit BountyIncreasedDeadline(_issue, _newDeadline, oldDeadline);
     }
 
     function closeBounty(string memory _issue) public {
@@ -120,7 +121,7 @@ contract Vgrant is Verifier {
         Bounty storage bounty = bounties[_issue];
         require(bounty.author == address(msg.sender), "your not the author of this bounty");
         bounty.approved = true;
-        emit BountyApproved(_issue, bounty.bounty, bounty.deadline);
+        emit BountyApproved(_issue, bounty.bounty, bounty.deadline, bounty.author);
     }
 
     function verify(Proof calldata, int256 userId, string memory status, string memory url) public onlyVerified(prover, VgrantProver.verifyIssue.selector) {
@@ -133,7 +134,7 @@ contract Vgrant is Verifier {
         require(block.timestamp < bounty.deadline, "Bounty deadline passed");
         require(bounty.author != msg.sender, "Author cannot claim their own bounty");
         bounty.claimed = true;
-        emit BountyClaimed(url, msg.sender);
+        emit BountyClaimed(url, msg.sender, bounty.bounty, accounts[userId], userId);
         IERC20(bountyToken).transfer(msg.sender, bounty.bounty);
     }
 }
