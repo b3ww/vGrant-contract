@@ -12,7 +12,7 @@ contract Vgrant is Verifier {
     using Strings for uint256;
     address public prover;
     address private immutable owner;
-    mapping(address => uint256 id) public accounts;
+    mapping(int256 id => address ) public accounts;
     IERC20 public bountyToken;
 
     struct Bounty {
@@ -28,14 +28,11 @@ contract Vgrant is Verifier {
     mapping(string issue => bool) public bountyExists;
 
     event BountyAdded(string repo, uint256 issueId, uint256 bounty, uint256 deadline);
-    event BountyApproved(string issue);
+    event BountyApproved(string issue, uint256 bounty, uint256 deadline);
     event BountyClosed(string issue);
     event BountyClaimed(string issue, address claimer);
     event BountyIncreasedDeadline(string issue, uint256 newDeadline);
-    event AccountVerified(address account, uint256 id);
-
-    string public userId;
-
+    event AccountVerified(address account, int256 id);
 
     constructor(address _prover, address _bountyToken) {
         require(_bountyToken != address(0), "Bounty token address cannot be zero");
@@ -46,16 +43,16 @@ contract Vgrant is Verifier {
         prover = _prover;
     }
 
-    function verifyAccount(uint256 _userId) public {
-        require(accounts[msg.sender] == 0, "Account already verified");
+    function verifyAccount(int256 _userId) public {
+        require(accounts[_userId] == address(0), "Account already verified");
         require(_userId > 0, "User ID must be greater than zero");
-        accounts[msg.sender] = _userId;
+        accounts[_userId] = msg.sender;
         emit AccountVerified(msg.sender, _userId);
         // need to verify the account with the prover
     }
 
-    function isVerified(address _user) public view returns (bool) {
-        return accounts[_user] != 0;
+    function isVerified(int256 _userId) public view returns (bool) {
+        return accounts[_userId] != address(0);
     }
 
     // url need to be "https://github.com/b3ww/vGrant/issues/2" for example
@@ -123,24 +120,20 @@ contract Vgrant is Verifier {
         Bounty storage bounty = bounties[_issue];
         require(bounty.author == address(msg.sender), "your not the author of this bounty");
         bounty.approved = true;
-        emit BountyApproved(_issue);
+        emit BountyApproved(_issue, bounty.bounty, bounty.deadline);
     }
 
-    function claimBounty(Proof calldata p, string memory _userId, string memory _issue) public {
-        Bounty storage bounty = bounties[_issue];
+    function verify(Proof calldata, int256 userId, string memory status, string memory url) public onlyVerified(prover, VgrantProver.verifyIssue.selector) {
+        require(keccak256(abi.encodePacked(status)) == keccak256(abi.encodePacked("completed")), "Issue is not completed");
+        require(accounts[userId] != address(0), "User not verified");
+        require(bountyExists[url], "Bounty does not exist for this issue");
+        Bounty storage bounty = bounties[url];
         require(bounty.approved, "Bounty not approved yet");
         require(!bounty.claimed, "Bounty already claimed");
         require(block.timestamp < bounty.deadline, "Bounty deadline passed");
-        require(accounts[msg.sender] != 0, "Account not verified");
-        // verify caller have fix the issue
-        _verify(p, _userId);
+        require(bounty.author != msg.sender, "Author cannot claim their own bounty");
         bounty.claimed = true;
-        // transfer bounty to claimer
-        emit BountyClaimed(_issue, msg.sender);
+        emit BountyClaimed(url, msg.sender);
         IERC20(bountyToken).transfer(msg.sender, bounty.bounty);
-    }
-
-    function _verify(Proof calldata, string memory _userId) internal onlyVerified(prover, VgrantProver.verifyIssue.selector) {
-        userId = _userId;
     }
 }

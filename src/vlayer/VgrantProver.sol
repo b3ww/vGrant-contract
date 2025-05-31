@@ -10,13 +10,15 @@ contract VgrantProver is Prover {
     using WebProofLib for WebProof;
     using WebLib for Web;
 
-    string public constant DATA_URL = "https://api.github.com/repos/b3ww/vGrant/issues/2";
+    string public constant DATA_URL = "https://api.github.com/repos/";
 
-    function verifyIssue(WebProof calldata webProof) public view returns (Proof memory, int256) {
-        Web memory web = webProof.verify(DATA_URL);
-
+    function verifyIssue(WebProof calldata webProof, string memory repo, string memory issueId) public view returns (Proof memory, int256, string memory, string memory) {
+        string memory fullUrl = string(abi.encodePacked(DATA_URL, repo, "/issues/", issueId));
+        Web memory web = webProof.verify(fullUrl);
         int256 userId = web.jsonGetInt("assignee.id");
-
-        return (proof(), userId);
+        string memory status = web.jsonGetString("state_reason");
+        string memory issueUrl = web.jsonGetString("url");
+        require(keccak256(abi.encodePacked(status)) == keccak256(abi.encodePacked("completed")), "Issue is not completed");
+        return (proof(), userId, status, issueUrl);
     }
 }

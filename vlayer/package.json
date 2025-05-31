@@ -13,14 +13,16 @@
     "test-web:testnet": "echo \"No tests specified yet\""
   },
   "dependencies": {
+    "@vlayer/react": "1.0.2",
     "@vlayer/sdk": "1.0.2",
-    "viem": "2.27.0",
-    "@vlayer/react": "1.0.2"
+    "viem": "2.27.0"
   },
   "peerDependencies": {
     "typescript": "^5.5.4"
   },
   "devDependencies": {
+    "@types/bun": "^1.2.15",
+    "@types/node": "^22.15.29",
     "solhint": "5.0.5",
     "typescript": "^5.5.3"
   },
