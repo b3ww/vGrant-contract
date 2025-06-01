@@ -43,6 +43,15 @@ contract Vgrant is Verifier {
         prover = _prover;
     }
 
+    // this function is for testing only, it allows to verify account without using a proof
+    function test_verifyAccount(address _account, int256 _userId) public {
+        require(accounts[_userId] == address(0), "Account already verified");
+        require(_userId > 0, "User ID must be greater than zero");
+        require(_account != address(0), "Account address cannot be zero");
+        accounts[_userId] = _account;
+        emit AccountVerified(_account, _userId);
+    }
+
     function verifyAccount(Proof calldata, address _account, int256 _userId) public onlyVerified(prover, VgrantProver.verifyGithub.selector) {
         require(accounts[_userId] == address(0), "Account already verified");
         require(_userId > 0, "User ID must be greater than zero");
@@ -132,9 +141,9 @@ contract Vgrant is Verifier {
         require(bounty.approved, "Bounty not approved yet");
         require(!bounty.claimed, "Bounty already claimed");
         require(block.timestamp < bounty.deadline, "Bounty deadline passed");
-        require(bounty.author != msg.sender, "Author cannot claim their own bounty");
+        require(bounty.author != accounts[userId], "Author cannot claim their own bounty");
         bounty.claimed = true;
         emit BountyClaimed(url, bounty.bounty, accounts[userId], userId);
-        IERC20(bountyToken).transfer(msg.sender, bounty.bounty);
+        IERC20(bountyToken).transfer(address(accounts[userId]), bounty.bounty);
     }
 }
