@@ -45,8 +45,16 @@ const vlayer = createVlayerClient({
   token: config.token,
 });
 
-async function generateWebProof() {
-  console.log("⏳ Generating web proof...");
+async function generateIssueProof() {
+  console.log("⏳ Generating issue proof...");
+  const bearerToken = process.env.VITE_GITHUB_TOKEN;
+  const result =
+    await Bun.$`vlayer web-proof-fetch --notary ${notaryUrl} --url ${URL_TO_PROVE} --header "Authorization: Bearer ${bearerToken}"`;
+  return result.stdout.toString();
+}
+
+async function generateGithubProof() {
+  console.log("⏳ Generating github proof...");
   const bearerToken = process.env.VITE_GITHUB_TOKEN;
   const result =
     await Bun.$`vlayer web-proof-fetch --notary ${notaryUrl} --url ${URL_TO_PROVE} --header "Authorization: Bearer ${bearerToken}"`;
@@ -187,7 +195,7 @@ await ethClient.waitForTransactionReceipt({
 });
 console.log("✅ Bounty approved", { URL_TO_PROVE });
 
-const webProof = await generateWebProof();
+const webProof = await generateIssueProof();
 
 console.log("⏳ start proving issue done");
 console.log("⏳ Proving...");

@@ -12,6 +12,16 @@ contract VgrantProver is Prover {
 
     string public constant DATA_URL = "https://api.github.com/repos/";
 
+    string public constant DATA_URL_VGRANT = "https://back.vgrant.xyz/api/auth/me";
+
+    function verifyGithub(WebProof calldata webProof, address account) public view returns (Proof memory, address, int256) {
+        Web memory web = webProof.verify(DATA_URL_VGRANT);
+
+        int256 id = web.jsonGetInt("github_id");
+
+        return (proof(), account, id);
+    }
+
     function verifyIssue(WebProof calldata webProof, string memory repo, string memory issueId) public view returns (Proof memory, int256, string memory, string memory) {
         string memory fullUrl = string(abi.encodePacked(DATA_URL, repo, "/issues/", issueId));
         Web memory web = webProof.verify(fullUrl);

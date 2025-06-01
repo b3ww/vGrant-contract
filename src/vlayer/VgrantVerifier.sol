@@ -6,7 +6,7 @@ import {Verifier} from "vlayer-0.1.0/Verifier.sol";
 import {IERC20} from "@openzeppelin-contracts-5.0.1/token/ERC20/IERC20.sol";
 import "@openzeppelin-contracts-5.0.1/utils/Strings.sol";
 
-import {VgrantProver} from "./VgrantProver.sol";
+import {VgrantProver} from "./VgrantGithubProver.sol";
 
 contract Vgrant is Verifier {
     using Strings for uint256;
@@ -30,7 +30,7 @@ contract Vgrant is Verifier {
     event BountyAdded(string repo, uint256 issueId, uint256 bounty, uint256 deadline);
     event BountyApproved(string issue, uint256 bounty, uint256 deadline, address author);
     event BountyClosed(string issue);
-    event BountyClaimed(string issue, address claimer, uint256 bounty, address dev, int256 githubId);
+    event BountyClaimed(string issue, uint256 bounty, address dev, int256 githubId);
     event BountyIncreasedDeadline(string issue, uint256 newDeadline, uint256 oldDeadline);
     event AccountVerified(address account, int256 id);
 
@@ -43,12 +43,12 @@ contract Vgrant is Verifier {
         prover = _prover;
     }
 
-    function verifyAccount(int256 _userId) public {
+    function verifyAccount(Proof calldata, address _account, int256 _userId) public onlyVerified(prover, VgrantProver.verifyGithub.selector) {
         require(accounts[_userId] == address(0), "Account already verified");
         require(_userId > 0, "User ID must be greater than zero");
-        accounts[_userId] = msg.sender;
-        emit AccountVerified(msg.sender, _userId);
-        // need to verify the account with the prover
+        require(_account != address(0), "Account address cannot be zero");
+        accounts[_userId] = _account;
+        emit AccountVerified(_account, _userId);
     }
 
     function isVerified(int256 _userId) public view returns (bool) {
@@ -134,7 +134,7 @@ contract Vgrant is Verifier {
         require(block.timestamp < bounty.deadline, "Bounty deadline passed");
         require(bounty.author != msg.sender, "Author cannot claim their own bounty");
         bounty.claimed = true;
-        emit BountyClaimed(url, msg.sender, bounty.bounty, accounts[userId], userId);
+        emit BountyClaimed(url, bounty.bounty, accounts[userId], userId);
         IERC20(bountyToken).transfer(msg.sender, bounty.bounty);
     }
 }
